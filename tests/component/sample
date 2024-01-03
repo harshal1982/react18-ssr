@@ -1,0 +1,743 @@
+import renderer from 'react-test-renderer';
+import React from 'react';
+import { screen, fireEvent } from '@testing-library/react';
+import renderWithProviders, { setupStore } from '../../utils/test-utils';
+import UniqueId from '../../../src/app/containers/unique-id/unique-id';
+import { act } from 'react-dom/test-utils';
+const mockedNavigate = jest.fn();
+import * as lib1 from '../../../src/app/api/customerAuth';
+jest.mock('react-router-dom', () => {
+	const actualNav = jest.requireActual('react-router-dom');
+	return {
+		useNavigate: () => jest.fn(),
+		useLocation: () => jest.fn(),
+		useParams: () => jest.fn(),
+	};
+});
+beforeEach(() => {
+	window.csrf = { token: '3232AKJD' };
+	let showLogMessage = require('../../../src/app/api/logger');
+	jest.spyOn(showLogMessage, 'showLogMessage').mockResolvedValue('Application - UniqueID - Page Load');
+});
+afterEach(() => {
+	jest.clearAllMocks();
+});
+const payloadMockResponse = {
+    "statusCode": 200,
+    "data": [
+      {
+        "ac_records_id": 503,
+        "acct_num": 25196557774,
+        "cid": 15317125345842,
+        "prod_id": 0,
+        "unique_id": "BU143768330009",
+        "birth_dt": "1945-12-01",
+        "vin": "2GNFLEEK3E6346767",
+        "email_address": "abc@abc.com",
+        "phone_num": "4037373048",
+        "process_dt": "2024-08-10T00:00:00.000Z",
+        "prog_code": 1,
+        "offer_start_dt": "2022-07-08T00:00:00.000Z",
+        "offer_expiry_dt": "2023-09-08T00:00:00.000Z",
+        "first_nm": "BEATRICEYY",
+        "last_nm": "BULLSHIELDSYY",
+        "current_bal": 4152.89,
+        "regular_pymt": 561.58,
+        "pymt_freq": "M",
+        "intr_rate": 6.98,
+        "amort_remaining": 3,
+        "new_car_f": 0,
+        "model_year": 2014,
+        "model_desc": "Chevrolet Equinox",
+        "new_pymt_03m": null,
+        "new_pymt_06m": null,
+        "new_pymt_12m": 290,
+        "new_pymt_18m": 211,
+        "new_pymt_24m": 167,
+        "new_pymt_36m": 120,
+        "new_intr_rate_03m": 6.12,
+        "new_intr_rate_06m": 6.14,
+        "new_intr_rate_12m": 6.15,
+        "new_intr_rate_18m": 6.16,
+        "new_intr_rate_24m": 6.17,
+        "new_intr_rate_36m": 6.18,
+        "min_incm_req_03m": 6,
+        "min_incm_req_06m": 7,
+        "min_incm_req_12m": 458,
+        "min_incm_req_18m": 351,
+        "min_incm_req_24m": 293,
+        "min_incm_req_36m": 230,
+        "arp_fee_amt_03m": 101,
+        "arp_fee_amt_06m": 102,
+        "arp_fee_amt_12m": 103,
+        "arp_fee_amt_18m": 104,
+        "arp_fee_amt_24m": 105,
+        "arp_fee_amt_36m": 106,
+        "new_amort_03m": 107,
+        "new_amort_06m": 108,
+        "new_amort_12m": 96,
+        "new_amort_18m": 102,
+        "new_amort_24m": 108,
+        "new_amort_36m": 120,
+        "created_by": "harshal",
+        "createdAt": "2022-12-12T13:12:54.186Z",
+        "updatedAt": "2022-12-12T13:12:54.186Z",
+        "updated_by": "harshal",
+        "userflag": null
+      }
+    ]
+  };
+  const payloadMockResponseEmpty = {
+    "statusCode": 200,
+    "data": [
+      
+    ]
+  };
+const reduxActionProps = {
+	setIntroLocalization: jest.fn(),
+	loadingStart: jest.fn(),
+	loadingStop: jest.fn(),
+	setCustomerAuthData: jest.fn(),
+	emptyCustomerData: jest.fn(),
+	setError: jest.fn(),
+	navigate: jest.fn(),
+	history: { push: jest.fn() },
+	setCustomerData: jest.fn(),
+	setLoanType: jest.fn(),
+	appLocales: {
+		uniqueId: {
+			labels: {
+				uniqueid_dob: 'Date of birth',
+				uniqueid_p_1: '(You can find this code in the offer email/letter)',
+				uniqueid_vin: 'Vehicle Identification Number (VIN)',
+				uniqueid_p_2: 'If you have multiple eligible Scotia Plan Loans,',
+				uniqueid_title: 'Let’s get started with your Scotia Plan Loan Restructure request',
+				uniqueid_back_btn: 'Back',
+				uniqueid_find_vin: 'Where do I find my VIN?',
+				uniqueid_dob_error: 'Please enter your birthday (MM/DD/YYYY).',
+				uniqueid_dob_error_2: 'Please enter your birthday (MM/DD/YYYY).',
+				uniqueid_p_1_error: 'Please enter valid unique code.',
+				uniqueid_vin_error: 'Please enter the last 6 digits of your VIN.',
+				uniqueid_p_1_strong: 'Unique code',
+				uniqueid_p_2_strong: 'please submit separate requests using the unique code provided for each loan.',
+				uniqueid_dob_error_1: 'Please enter a valid birthday (MM/DD/YYYY).',
+				uniqueid_dob_valid_error: 'Please enter a valid birthday (MM/DD/YYYY).',
+				uniqueid_vin_error_1: 'Please enter a valid VIN.',
+				uniqueid_continue_btn: 'Continue',
+				uniqueid_find_vin_p_1:
+					'Your Vehicle Identification Number can be found in a number of places on your car. Try looking:',
+				uniqueid_find_vin_p_2: 'You can also look for your VIN in:',
+				uniqueid_dob_placeholder: 'MM/DD/YYYY',
+				uniqueid_dob_placeholder2: 'MM/DD/YYYY',
+				uniqueid_find_vin_list_1: 'Front of engine block under hood',
+				uniqueid_find_vin_list_2: 'Driver’s side interior dash',
+				uniqueid_find_vin_list_3: 'Front end of frame (older cars)',
+				uniqueid_find_vin_list_4: 'Driver’s side door jamb (inside)',
+				uniqueid_vin_placeholder: 'Enter the last 6 digits',
+				uniqueid_find_vin_list_2_2: 'Vehicle insurance records',
+				uniqueid_find_vin_list_2_3: 'Vehicle registration card',
+				uniqueid_invalid_error_msg: 'Invalid credentials, please try again!',
+				uniqueid_find_vin_list__2_1: 'Vehicle title records',
+				uniqueid_already_submitted_error_msg:
+					'You have already submitted your request , for any queries please contact ScotiaHelps at 1-866-819-7382',
+			},
+		},
+	},
+	// customerData : {
+	//   vin:"123456",
+	//   birthday:"",
+	//   uniqueId:"csavs",
+	//   email:"abc@abc.com",
+	//   phoneNumber:"4037373048",
+	//   loanTerm:"18",
+	//   tncChecked:""
+	// }
+};
+test('UniqueId', async () => {
+	//const store = setupStore()
+
+	const { getByAltText, getByLabelText, container } = renderWithProviders(
+		<UniqueId.component {...reduxActionProps} />,
+		{
+			preloadedState: {
+				appLocales: {
+					uniqueId: {
+						labels: {
+							uniqueid_dob: 'Date of birth',
+							uniqueid_p_1: '(You can find this code in the offer email/letter)',
+							uniqueid_vin: 'Vehicle Identification Number (VIN)',
+							uniqueid_p_2: 'If you have multiple eligible Scotia Plan Loans,',
+							uniqueid_title: 'Let’s get started with your Scotia Plan Loan Restructure request',
+							uniqueid_back_btn: 'Back',
+							uniqueid_find_vin: 'Where do I find my VIN?',
+							uniqueid_dob_error: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_dob_error_2: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_p_1_error: 'Please enter valid unique code.',
+							uniqueid_vin_error: 'Please enter the last 6 digits of your VIN.',
+							uniqueid_p_1_strong: 'Unique code',
+							uniqueid_p_2_strong:
+								'please submit separate requests using the unique code provided for each loan.',
+							uniqueid_dob_error_1: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_dob_valid_error: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_vin_error_1: 'Please enter a valid VIN.',
+							uniqueid_continue_btn: 'Continue',
+							uniqueid_find_vin_p_1:
+								'Your Vehicle Identification Number can be found in a number of places on your car. Try looking:',
+							uniqueid_find_vin_p_2: 'You can also look for your VIN in:',
+							uniqueid_dob_placeholder: 'MM/DD/YYYY',
+							uniqueid_dob_placeholder2: 'MM/DD/YYYY',
+							uniqueid_find_vin_list_1: 'Front of engine block under hood',
+							uniqueid_find_vin_list_2: 'Driver’s side interior dash',
+							uniqueid_find_vin_list_3: 'Front end of frame (older cars)',
+							uniqueid_find_vin_list_4: 'Driver’s side door jamb (inside)',
+							uniqueid_vin_placeholder: 'Enter the last 6 digits',
+							uniqueid_find_vin_list_2_2: 'Vehicle insurance records',
+							uniqueid_find_vin_list_2_3: 'Vehicle registration card',
+							uniqueid_invalid_error_msg: 'Invalid credentials, please try again!',
+							uniqueid_find_vin_list__2_1: 'Vehicle title records',
+							uniqueid_already_submitted_error_msg:
+								'You have already submitted your request , for any queries please contact ScotiaHelps at 1-866-819-7382',
+						},
+					},
+					footerPage: {
+						labels: {
+							application_page_title: 'Abc',
+						},
+					},
+				},
+			},
+		}
+	);
+
+	await act( async () => {
+	const spy = jest.spyOn(lib1, 'authCustomer');
+    await spy.mockResolvedValue(payloadMockResponse);
+	let birthInput = screen.getAllByTestId('birthText')[0];
+	fireEvent.change(birthInput, {
+		target: { name: 'birthday', value: '1990/12/12' },
+	});
+	let uniqueIDInput = screen.getAllByTestId('text-field-1')[0];
+	fireEvent.change(uniqueIDInput, {
+		target: { name: 'uniqueId', value: '12345' },
+	});
+
+	let vinIDInput = screen.getAllByTestId('text-field-3')[0];
+	fireEvent.change(vinIDInput, {
+		target: { name: 'vin', value: '123456' }
+	  });
+	const beneficiaryValue = container.querySelector('.continue-button');
+	fireEvent.click(beneficiaryValue);
+	});
+});
+
+test('UniqueId Error', async () => {
+	//const store = setupStore()
+
+	const { getByAltText, getByLabelText, container } = renderWithProviders(
+		<UniqueId.component {...reduxActionProps} />,
+		{
+			preloadedState: {
+				appLocales: {
+					uniqueId: {
+						labels: {
+							uniqueid_dob: 'Date of birth',
+							uniqueid_p_1: '(You can find this code in the offer email/letter)',
+							uniqueid_vin: 'Vehicle Identification Number (VIN)',
+							uniqueid_p_2: 'If you have multiple eligible Scotia Plan Loans,',
+							uniqueid_title: 'Let’s get started with your Scotia Plan Loan Restructure request',
+							uniqueid_back_btn: 'Back',
+							uniqueid_find_vin: 'Where do I find my VIN?',
+							uniqueid_dob_error: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_dob_error_2: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_p_1_error: 'Please enter valid unique code.',
+							uniqueid_vin_error: 'Please enter the last 6 digits of your VIN.',
+							uniqueid_p_1_strong: 'Unique code',
+							uniqueid_p_2_strong:
+								'please submit separate requests using the unique code provided for each loan.',
+							uniqueid_dob_error_1: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_dob_valid_error: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_vin_error_1: 'Please enter a valid VIN.',
+							uniqueid_continue_btn: 'Continue',
+							uniqueid_find_vin_p_1:
+								'Your Vehicle Identification Number can be found in a number of places on your car. Try looking:',
+							uniqueid_find_vin_p_2: 'You can also look for your VIN in:',
+							uniqueid_dob_placeholder: 'MM/DD/YYYY',
+							uniqueid_dob_placeholder2: 'MM/DD/YYYY',
+							uniqueid_find_vin_list_1: 'Front of engine block under hood',
+							uniqueid_find_vin_list_2: 'Driver’s side interior dash',
+							uniqueid_find_vin_list_3: 'Front end of frame (older cars)',
+							uniqueid_find_vin_list_4: 'Driver’s side door jamb (inside)',
+							uniqueid_vin_placeholder: 'Enter the last 6 digits',
+							uniqueid_find_vin_list_2_2: 'Vehicle insurance records',
+							uniqueid_find_vin_list_2_3: 'Vehicle registration card',
+							uniqueid_invalid_error_msg: 'Invalid credentials, please try again!',
+							uniqueid_find_vin_list__2_1: 'Vehicle title records',
+							uniqueid_already_submitted_error_msg:
+								'You have already submitted your request , for any queries please contact ScotiaHelps at 1-866-819-7382',
+						},
+					},
+					footerPage: {
+						labels: {
+							application_page_title: 'Abc',
+						},
+					},
+				},
+			},
+		}
+	);
+	await act( async () => {
+	const beneficiaryValue = container.querySelector('.continue-button');
+	fireEvent.click(beneficiaryValue);
+	});
+});
+
+test('UniqueId Error auth failed', async () => {
+	//const store = setupStore()
+	const spy = jest.spyOn(lib1, 'authCustomer');
+    await spy.mockResolvedValue(new Error);
+
+	const { getByAltText, getByLabelText, container } = renderWithProviders(
+		<UniqueId.component {...reduxActionProps} />,
+		{
+			preloadedState: {
+				appLocales: {
+					uniqueId: {
+						labels: {
+							uniqueid_dob: 'Date of birth',
+							uniqueid_p_1: '(You can find this code in the offer email/letter)',
+							uniqueid_vin: 'Vehicle Identification Number (VIN)',
+							uniqueid_p_2: 'If you have multiple eligible Scotia Plan Loans,',
+							uniqueid_title: 'Let’s get started with your Scotia Plan Loan Restructure request',
+							uniqueid_back_btn: 'Back',
+							uniqueid_find_vin: 'Where do I find my VIN?',
+							uniqueid_dob_error: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_dob_error_2: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_p_1_error: 'Please enter valid unique code.',
+							uniqueid_vin_error: 'Please enter the last 6 digits of your VIN.',
+							uniqueid_p_1_strong: 'Unique code',
+							uniqueid_p_2_strong:
+								'please submit separate requests using the unique code provided for each loan.',
+							uniqueid_dob_error_1: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_dob_valid_error: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_vin_error_1: 'Please enter a valid VIN.',
+							uniqueid_continue_btn: 'Continue',
+							uniqueid_find_vin_p_1:
+								'Your Vehicle Identification Number can be found in a number of places on your car. Try looking:',
+							uniqueid_find_vin_p_2: 'You can also look for your VIN in:',
+							uniqueid_dob_placeholder: 'MM/DD/YYYY',
+							uniqueid_dob_placeholder2: 'MM/DD/YYYY',
+							uniqueid_find_vin_list_1: 'Front of engine block under hood',
+							uniqueid_find_vin_list_2: 'Driver’s side interior dash',
+							uniqueid_find_vin_list_3: 'Front end of frame (older cars)',
+							uniqueid_find_vin_list_4: 'Driver’s side door jamb (inside)',
+							uniqueid_vin_placeholder: 'Enter the last 6 digits',
+							uniqueid_find_vin_list_2_2: 'Vehicle insurance records',
+							uniqueid_find_vin_list_2_3: 'Vehicle registration card',
+							uniqueid_invalid_error_msg: 'Invalid credentials, please try again!',
+							uniqueid_find_vin_list__2_1: 'Vehicle title records',
+							uniqueid_already_submitted_error_msg:
+								'You have already submitted your request , for any queries please contact ScotiaHelps at 1-866-819-7382',
+						},
+					},
+					footerPage: {
+						labels: {
+							application_page_title: 'Abc',
+						},
+					},
+				},
+			},
+		}
+	);
+	await act( async () => {
+	const beneficiaryValue = container.querySelector('.continue-button');
+	fireEvent.click(beneficiaryValue);
+	});
+});
+
+test('UniqueId Error Birthday Not valide', async () => {
+	//const store = setupStore()
+
+	const { getByAltText, getByLabelText, container } = renderWithProviders(
+		<UniqueId.component {...reduxActionProps} />,
+		{
+			preloadedState: {
+				appLocales: {
+					uniqueId: {
+						labels: {
+							uniqueid_dob: 'Date of birth',
+							uniqueid_p_1: '(You can find this code in the offer email/letter)',
+							uniqueid_vin: 'Vehicle Identification Number (VIN)',
+							uniqueid_p_2: 'If you have multiple eligible Scotia Plan Loans,',
+							uniqueid_title: 'Let’s get started with your Scotia Plan Loan Restructure request',
+							uniqueid_back_btn: 'Back',
+							uniqueid_find_vin: 'Where do I find my VIN?',
+							uniqueid_dob_error: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_dob_error_2: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_p_1_error: 'Please enter valid unique code.',
+							uniqueid_vin_error: 'Please enter the last 6 digits of your VIN.',
+							uniqueid_p_1_strong: 'Unique code',
+							uniqueid_p_2_strong:
+								'please submit separate requests using the unique code provided for each loan.',
+							uniqueid_dob_error_1: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_dob_valid_error: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_vin_error_1: 'Please enter a valid VIN.',
+							uniqueid_continue_btn: 'Continue',
+							uniqueid_find_vin_p_1:
+								'Your Vehicle Identification Number can be found in a number of places on your car. Try looking:',
+							uniqueid_find_vin_p_2: 'You can also look for your VIN in:',
+							uniqueid_dob_placeholder: 'MM/DD/YYYY',
+							uniqueid_dob_placeholder2: 'MM/DD/YYYY',
+							uniqueid_find_vin_list_1: 'Front of engine block under hood',
+							uniqueid_find_vin_list_2: 'Driver’s side interior dash',
+							uniqueid_find_vin_list_3: 'Front end of frame (older cars)',
+							uniqueid_find_vin_list_4: 'Driver’s side door jamb (inside)',
+							uniqueid_vin_placeholder: 'Enter the last 6 digits',
+							uniqueid_find_vin_list_2_2: 'Vehicle insurance records',
+							uniqueid_find_vin_list_2_3: 'Vehicle registration card',
+							uniqueid_invalid_error_msg: 'Invalid credentials, please try again!',
+							uniqueid_find_vin_list__2_1: 'Vehicle title records',
+							uniqueid_already_submitted_error_msg:
+								'You have already submitted your request , for any queries please contact ScotiaHelps at 1-866-819-7382',
+						},
+					},
+					footerPage: {
+						labels: {
+							application_page_title: 'Abc',
+						},
+					},
+				},
+			},
+		}
+	);
+	await act( async () => {
+	const spy = jest.spyOn(lib1, 'authCustomer');
+    await spy.mockResolvedValue(payloadMockResponse);
+	let birthInput = screen.getAllByTestId('birthText')[0];
+	fireEvent.change(birthInput, {
+		target: { name: 'birthday', value: '1990/13/13' },
+	});
+	let uniqueIDInput = screen.getAllByTestId('text-field-1')[0];
+	fireEvent.change(uniqueIDInput, {
+		target: { name: 'uniqueId', value: '&*&*' },
+	});
+
+	let vinIDInput = screen.getAllByTestId('text-field-3')[0];
+	fireEvent.change(vinIDInput, {
+		target: { name: 'vin', value: '&*^*^' }
+	  });
+	
+	const beneficiaryValue = container.querySelector('.continue-button');
+	fireEvent.click(beneficiaryValue);
+	})
+});
+
+test('UniqueId Error Vin greater than 6', async () => {
+	//const store = setupStore()
+
+	const { getByAltText, getByLabelText, container } = renderWithProviders(
+		<UniqueId.component {...reduxActionProps} />,
+		{
+			preloadedState: {
+				appLocales: {
+					uniqueId: {
+						labels: {
+							uniqueid_dob: 'Date of birth',
+							uniqueid_p_1: '(You can find this code in the offer email/letter)',
+							uniqueid_vin: 'Vehicle Identification Number (VIN)',
+							uniqueid_p_2: 'If you have multiple eligible Scotia Plan Loans,',
+							uniqueid_title: 'Let’s get started with your Scotia Plan Loan Restructure request',
+							uniqueid_back_btn: 'Back',
+							uniqueid_find_vin: 'Where do I find my VIN?',
+							uniqueid_dob_error: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_dob_error_2: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_p_1_error: 'Please enter valid unique code.',
+							uniqueid_vin_error: 'Please enter the last 6 digits of your VIN.',
+							uniqueid_p_1_strong: 'Unique code',
+							uniqueid_p_2_strong:
+								'please submit separate requests using the unique code provided for each loan.',
+							uniqueid_dob_error_1: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_dob_valid_error: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_vin_error_1: 'Please enter a valid VIN.',
+							uniqueid_continue_btn: 'Continue',
+							uniqueid_find_vin_p_1:
+								'Your Vehicle Identification Number can be found in a number of places on your car. Try looking:',
+							uniqueid_find_vin_p_2: 'You can also look for your VIN in:',
+							uniqueid_dob_placeholder: 'MM/DD/YYYY',
+							uniqueid_dob_placeholder2: 'MM/DD/YYYY',
+							uniqueid_find_vin_list_1: 'Front of engine block under hood',
+							uniqueid_find_vin_list_2: 'Driver’s side interior dash',
+							uniqueid_find_vin_list_3: 'Front end of frame (older cars)',
+							uniqueid_find_vin_list_4: 'Driver’s side door jamb (inside)',
+							uniqueid_vin_placeholder: 'Enter the last 6 digits',
+							uniqueid_find_vin_list_2_2: 'Vehicle insurance records',
+							uniqueid_find_vin_list_2_3: 'Vehicle registration card',
+							uniqueid_invalid_error_msg: 'Invalid credentials, please try again!',
+							uniqueid_find_vin_list__2_1: 'Vehicle title records',
+							uniqueid_already_submitted_error_msg:
+								'You have already submitted your request , for any queries please contact ScotiaHelps at 1-866-819-7382',
+						},
+					},
+					footerPage: {
+						labels: {
+							application_page_title: 'Abc',
+						},
+					},
+				},
+			},
+		}
+	);
+	await act( async () => {
+	const spy = jest.spyOn(lib1, 'authCustomer');
+    await spy.mockResolvedValue(payloadMockResponse);
+	let birthInput = screen.getAllByTestId('birthText')[0];
+	fireEvent.change(birthInput, {
+		target: { name: 'birthday', value: '1990/13/13' },
+	});
+	let uniqueIDInput = screen.getAllByTestId('text-field-1')[0];
+	fireEvent.change(uniqueIDInput, {
+		target: { name: 'uniqueId', value: '242234234' },
+	});
+
+	let vinIDInput = screen.getAllByTestId('text-field-3')[0];
+	fireEvent.change(vinIDInput, {
+		target: { name: 'vin', value: '3232323' }
+	  });
+	
+	const beneficiaryValue = container.querySelector('.continue-button');
+	fireEvent.click(beneficiaryValue);
+	});
+});
+
+test('UniqueId Get Customer Get Customer Response Empty', async () => {
+	//const store = setupStore()
+
+	const { getByAltText, getByLabelText, container } = renderWithProviders(
+		<UniqueId.component {...reduxActionProps} />,
+		{
+			preloadedState: {
+				appLocales: {
+					uniqueId: {
+						labels: {
+							uniqueid_dob: 'Date of birth',
+							uniqueid_p_1: '(You can find this code in the offer email/letter)',
+							uniqueid_vin: 'Vehicle Identification Number (VIN)',
+							uniqueid_p_2: 'If you have multiple eligible Scotia Plan Loans,',
+							uniqueid_title: 'Let’s get started with your Scotia Plan Loan Restructure request',
+							uniqueid_back_btn: 'Back',
+							uniqueid_find_vin: 'Where do I find my VIN?',
+							uniqueid_dob_error: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_dob_error_2: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_p_1_error: 'Please enter valid unique code.',
+							uniqueid_vin_error: 'Please enter the last 6 digits of your VIN.',
+							uniqueid_p_1_strong: 'Unique code',
+							uniqueid_p_2_strong:
+								'please submit separate requests using the unique code provided for each loan.',
+							uniqueid_dob_error_1: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_dob_valid_error: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_vin_error_1: 'Please enter a valid VIN.',
+							uniqueid_continue_btn: 'Continue',
+							uniqueid_find_vin_p_1:
+								'Your Vehicle Identification Number can be found in a number of places on your car. Try looking:',
+							uniqueid_find_vin_p_2: 'You can also look for your VIN in:',
+							uniqueid_dob_placeholder: 'MM/DD/YYYY',
+							uniqueid_dob_placeholder2: 'MM/DD/YYYY',
+							uniqueid_find_vin_list_1: 'Front of engine block under hood',
+							uniqueid_find_vin_list_2: 'Driver’s side interior dash',
+							uniqueid_find_vin_list_3: 'Front end of frame (older cars)',
+							uniqueid_find_vin_list_4: 'Driver’s side door jamb (inside)',
+							uniqueid_vin_placeholder: 'Enter the last 6 digits',
+							uniqueid_find_vin_list_2_2: 'Vehicle insurance records',
+							uniqueid_find_vin_list_2_3: 'Vehicle registration card',
+							uniqueid_invalid_error_msg: 'Invalid credentials, please try again!',
+							uniqueid_find_vin_list__2_1: 'Vehicle title records',
+							uniqueid_already_submitted_error_msg:
+								'You have already submitted your request , for any queries please contact ScotiaHelps at 1-866-819-7382',
+						},
+					},
+					footerPage: {
+						labels: {
+							application_page_title: 'Abc',
+						},
+					},
+				},
+			},
+		}
+	);
+	await act( async () => {
+	const spy = jest.spyOn(lib1, 'authCustomer');
+    await spy.mockResolvedValue(payloadMockResponseEmpty);
+	let birthInput = screen.getAllByTestId('birthText')[0];
+	fireEvent.change(birthInput, {
+		target: { name: 'birthday', value: '1990/12/12' },
+	});
+	let uniqueIDInput = screen.getAllByTestId('text-field-1')[0];
+	fireEvent.change(uniqueIDInput, {
+		target: { name: 'uniqueId', value: '242234234' },
+	});
+
+	let vinIDInput = screen.getAllByTestId('text-field-3')[0];
+	fireEvent.change(vinIDInput, {
+		target: { name: 'vin', value: '323238' }
+	  });
+	
+	const beneficiaryValue = container.querySelector('.continue-button');
+	fireEvent.click(beneficiaryValue);
+	});
+});
+
+test('UniqueId Get Customer Get Customer Response Error', async () => {
+	//const store = setupStore()
+
+	const { getByAltText, getByLabelText, container } = renderWithProviders(
+		<UniqueId.component {...reduxActionProps} />,
+		{
+			preloadedState: {
+				appLocales: {
+					uniqueId: {
+						labels: {
+							uniqueid_dob: 'Date of birth',
+							uniqueid_p_1: '(You can find this code in the offer email/letter)',
+							uniqueid_vin: 'Vehicle Identification Number (VIN)',
+							uniqueid_p_2: 'If you have multiple eligible Scotia Plan Loans,',
+							uniqueid_title: 'Let’s get started with your Scotia Plan Loan Restructure request',
+							uniqueid_back_btn: 'Back',
+							uniqueid_find_vin: 'Where do I find my VIN?',
+							uniqueid_dob_error: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_dob_error_2: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_p_1_error: 'Please enter valid unique code.',
+							uniqueid_vin_error: 'Please enter the last 6 digits of your VIN.',
+							uniqueid_p_1_strong: 'Unique code',
+							uniqueid_p_2_strong:
+								'please submit separate requests using the unique code provided for each loan.',
+							uniqueid_dob_error_1: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_dob_valid_error: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_vin_error_1: 'Please enter a valid VIN.',
+							uniqueid_continue_btn: 'Continue',
+							uniqueid_find_vin_p_1:
+								'Your Vehicle Identification Number can be found in a number of places on your car. Try looking:',
+							uniqueid_find_vin_p_2: 'You can also look for your VIN in:',
+							uniqueid_dob_placeholder: 'MM/DD/YYYY',
+							uniqueid_dob_placeholder2: 'MM/DD/YYYY',
+							uniqueid_find_vin_list_1: 'Front of engine block under hood',
+							uniqueid_find_vin_list_2: 'Driver’s side interior dash',
+							uniqueid_find_vin_list_3: 'Front end of frame (older cars)',
+							uniqueid_find_vin_list_4: 'Driver’s side door jamb (inside)',
+							uniqueid_vin_placeholder: 'Enter the last 6 digits',
+							uniqueid_find_vin_list_2_2: 'Vehicle insurance records',
+							uniqueid_find_vin_list_2_3: 'Vehicle registration card',
+							uniqueid_invalid_error_msg: 'Invalid credentials, please try again!',
+							uniqueid_find_vin_list__2_1: 'Vehicle title records',
+							uniqueid_already_submitted_error_msg:
+								'You have already submitted your request , for any queries please contact ScotiaHelps at 1-866-819-7382',
+						},
+					},
+					footerPage: {
+						labels: {
+							application_page_title: 'Abc',
+						},
+					},
+				},
+			},
+		}
+	);
+	await act( async () => {
+	const spy = jest.spyOn(lib1, 'authCustomer');
+    await spy.mockImplementation(new Error);
+	let birthInput = screen.getAllByTestId('birthText')[0];
+	fireEvent.change(birthInput, {
+		target: { name: 'birthday', value: '1990/12/12' },
+	});
+	let uniqueIDInput = screen.getAllByTestId('text-field-1')[0];
+	fireEvent.change(uniqueIDInput, {
+		target: { name: 'uniqueId', value: '242234234' },
+	});
+
+	let vinIDInput = screen.getAllByTestId('text-field-3')[0];
+	fireEvent.change(vinIDInput, {
+		target: { name: 'vin', value: '323238' }
+	  });
+	  fireEvent.blur(vinIDInput);
+	
+	const beneficiaryValue = container.querySelector('.continue-button');
+	fireEvent.click(beneficiaryValue);
+	});
+});
+
+test('UniqueId Get Customer Applocales French', async () => {
+	//const store = setupStore()
+
+	const { getByAltText, getByLabelText, container } = renderWithProviders(
+		<UniqueId.component {...reduxActionProps} />,
+		{
+			preloadedState: {
+				appLocales: {
+					uniqueId: {
+						labels: {
+							uniqueid_dob: 'Date of birth',
+							uniqueid_p_1: '(You can find this code in the offer email/letter)',
+							uniqueid_vin: 'Vehicle Identification Number (VIN)',
+							uniqueid_p_2: 'If you have multiple eligible Scotia Plan Loans,',
+							uniqueid_title: 'Let’s get started with your Scotia Plan Loan Restructure request',
+							uniqueid_back_btn: 'Back',
+							uniqueid_find_vin: 'Where do I find my VIN?',
+							uniqueid_dob_error: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_dob_error_2: 'Please enter your birthday (MM/DD/YYYY).',
+							uniqueid_p_1_error: 'Please enter valid unique code.',
+							uniqueid_vin_error: 'Please enter the last 6 digits of your VIN.',
+							uniqueid_p_1_strong: 'Unique code',
+							uniqueid_p_2_strong:
+								'please submit separate requests using the unique code provided for each loan.',
+							uniqueid_dob_error_1: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_dob_valid_error: 'Please enter a valid birthday (MM/DD/YYYY).',
+							uniqueid_vin_error_1: 'Please enter a valid VIN.',
+							uniqueid_continue_btn: 'Continue',
+							uniqueid_find_vin_p_1:
+								'Your Vehicle Identification Number can be found in a number of places on your car. Try looking:',
+							uniqueid_find_vin_p_2: 'You can also look for your VIN in:',
+							uniqueid_dob_placeholder: 'MM/DD/YYYY',
+							uniqueid_dob_placeholder2: 'MM/DD/YYYY',
+							uniqueid_find_vin_list_1: 'Front of engine block under hood',
+							uniqueid_find_vin_list_2: 'Driver’s side interior dash',
+							uniqueid_find_vin_list_3: 'Front end of frame (older cars)',
+							uniqueid_find_vin_list_4: 'Driver’s side door jamb (inside)',
+							uniqueid_vin_placeholder: 'Enter the last 6 digits',
+							uniqueid_find_vin_list_2_2: 'Vehicle insurance records',
+							uniqueid_find_vin_list_2_3: 'Vehicle registration card',
+							uniqueid_invalid_error_msg: 'Invalid credentials, please try again!',
+							uniqueid_find_vin_list__2_1: 'Vehicle title records',
+							uniqueid_already_submitted_error_msg:
+								'You have already submitted your request , for any queries please contact ScotiaHelps at 1-866-819-7382',
+						},
+					},
+					footerPage: {
+						labels: {
+							application_page_title: 'Abc',
+						},
+					},
+					siteLanguage :'fr-CA'
+				},
+			},
+		}
+	);
+	await act( async () => {
+	const spy = jest.spyOn(lib1, 'authCustomer');
+    await spy.mockResolvedValue(payloadMockResponse);
+	let birthInput = screen.getAllByTestId('birthText')[0];
+	fireEvent.change(birthInput, {
+		target: { name: 'birthday', value: '1990/12/12' },
+	});
+	let uniqueIDInput = screen.getAllByTestId('text-field-1')[0];
+	fireEvent.change(uniqueIDInput, {
+		target: { name: 'uniqueId', value: '242234234' },
+	});
+
+	let vinIDInput = screen.getAllByTestId('text-field-3')[0];
+	fireEvent.change(vinIDInput, {
+		target: { name: 'vin', value: '323238' }
+	  });
+	  fireEvent.blur(vinIDInput);
+	
+	const beneficiaryValue = container.querySelector('.continue-button');
+	fireEvent.click(beneficiaryValue);
+	});
+});
